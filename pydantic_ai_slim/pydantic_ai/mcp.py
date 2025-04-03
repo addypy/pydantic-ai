@@ -17,7 +17,6 @@ try:
     from mcp.client.session import ClientSession
     from mcp.client.sse import sse_client
     from mcp.client.stdio import StdioServerParameters, stdio_client
-    from mcp.types import CallToolResult
 except ImportError as _import_error:
     raise ImportError(
         'Please install the `mcp` package to use the MCP server, '
@@ -68,7 +67,7 @@ class MCPServer(ABC):
             for tool in tools.tools
         ]
 
-    async def call_tool(self, tool_name: str, arguments: dict[str, Any]) -> CallToolResult:
+    async def call_tool(self, tool_name: str, arguments: dict[str, Any]) -> Any:
         """Call a tool on the server.
 
         Args:
@@ -76,9 +75,10 @@ class MCPServer(ABC):
             arguments: The arguments to pass to the tool.
 
         Returns:
-            The result of the tool call.
+            The content of the tool call result.
         """
-        return await self._client.call_tool(tool_name, arguments)
+        result = await self._client.call_tool(tool_name, arguments)
+        return result.content
 
     async def __aenter__(self) -> Self:
         self._exit_stack = AsyncExitStack()
