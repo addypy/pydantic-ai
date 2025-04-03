@@ -8,7 +8,7 @@ from types import TracebackType
 from typing import Any
 
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
-from mcp.types import JSONRPCMessage
+from mcp.types import EmbeddedResource, ImageContent, JSONRPCMessage, TextContent
 from typing_extensions import Self
 
 from pydantic_ai.tools import ToolDefinition
@@ -78,7 +78,29 @@ class MCPServer(ABC):
             The content of the tool call result.
         """
         result = await self._client.call_tool(tool_name, arguments)
-        return result.content
+        content = result.content
+        
+        if isinstance(content, list):
+            # When content is a list of TextContent, extract the text from each item
+            text_items: list[str] = []
+            for item in content:
+                if isinstance(item, TextContent):
+                    text_items.append(item.text)
+            
+            # If all items were TextContent, return joined text
+            if len(text_items) == len(content):
+                return "\n".join(text_items)
+            # Otherwise return the original content
+            return content
+        elif isinstance(content, TextContent):
+            return content.text
+        elif isinstance(content, ImageContent):
+            return content.data
+        elif isinstance(content, EmbeddedResource):
+            return content.resource
+        else:
+            # For any other type, return the content as is
+            return content
 
     async def __aenter__(self) -> Self:
         self._exit_stack = AsyncExitStack()
